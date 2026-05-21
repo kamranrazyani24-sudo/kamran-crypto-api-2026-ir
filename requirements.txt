@@ -1,7 +1,4 @@
 fastapi
 uvicorn
 requests
-pandas
-numpy
-python-telegram-bot==20.7
-matplotlib
+python-telegram-bot>=20.0
