@@ -1,6 +1,6 @@
 fastapi
 uvicorn
-python-telegram-bot --upgrade
+python-telegram-bot 
 ccxt
 pandas
 matplotlib
