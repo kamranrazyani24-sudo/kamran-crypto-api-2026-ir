@@ -1,7 +1,7 @@
 import os
 import logging
 import requests
-
+import asyncio
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
@@ -18,128 +18,85 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO,
 )
-
 logger = logging.getLogger(__name__)
-
 
 # -------------------------
 # /start command
 # -------------------------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-
     message = (
-        f"سلام {user.first_name} 👋\n\n"
-        "نماد ارز را ارسال کن.\n"
-        "مثال:\n"
-        "BTC\n"
-        "ETH\n"
-        "BIT\n\n"
-        "ربات الگوهای مشابه را در بازار Binance بررسی می‌کند."
+        f"سلام {user.first_name} عزیز! 👋\n\n"
+        "برای دریافت پیش‌بینی، نام ارز (مثلاً BTC) را بفرست.\n"
+        "ربات تحلیل را انجام می‌دهد."
     )
-
     await update.message.reply_text(message)
-
 
 # -------------------------
 # Handle user message
 # -------------------------
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
     text = update.message.text.strip().upper()
-
+    
     if not text:
-        await update.message.reply_text("نماد معتبر ارسال کن.")
         return
 
-    # اگر USDT نداشت اضافه کن
-    if not text.endswith("USDT"):
-        symbol = f"{text}USDT"
-    else:
-        symbol = text
-
-    logger.info(f"User requested symbol: {symbol}")
-
+    # اضافه کردن USDT اگر لازم بود
+    symbol = text if text.endswith("USDT") else f"{text}USDT"
+    
     api_url = os.environ.get("FASTAPI_URL")
-
     if not api_url:
-        await update.message.reply_text("خطای تنظیمات سرور.")
-        logger.error("FASTAPI_URL not set")
+        await update.message.reply_text("خطای داخلی: آدرس API تنظیم نشده است.")
         return
-
-    url = f"{api_url}/predict/{symbol}"
 
     try:
-
-        response = requests.get(url, timeout=20)
-        response.raise_for_status()
-
+        # فراخوانی API
+        response = requests.get(f"{api_url}/predict/{symbol}", timeout=20)
+        
+        if response.status_code == 400:
+            await update.message.reply_text("متأسفانه این نماد در لیست موجود نیست.")
+            return
+            
         data = response.json()
-
         if data.get("status") != "ok":
-            await update.message.reply_text("خطا در دریافت داده.")
+            await update.message.reply_text("خطا در پردازش تحلیل.")
             return
 
         if data.get("prediction") == "not_enough_matches":
-            await update.message.reply_text(
-                f"برای {symbol} الگوی مشابه کافی پیدا نشد ❌"
-            )
+            await update.message.reply_text(f"برای {symbol} الگوی مشابهی پیدا نشد.")
             return
 
-        direction = data.get("direction")
-        matches = data.get("matches", [])
-
-        if direction == "bullish":
-            direction_text = "صعودی 📈"
-        else:
-            direction_text = "نزولی 📉"
-
-        message = f"پیش‌بینی برای {symbol}\n\n"
-        message += f"جهت احتمالی: {direction_text}\n\n"
-        message += "ارزهای با الگوی مشابه:\n"
-
-        if matches:
-            for m in matches:
-                s = m.get("symbol", "N/A")
-                score = m.get("score", 0)
-                message += f"{s} | score: {score:.3f}\n"
-        else:
-            message += "مورد مشابهی پیدا نشد."
-
+        direction = "صعودی 📈" if data.get("direction") == "bullish" else "نزولی 📉"
+        message = f"📊 پیش‌بینی برای {symbol}\n\nجهت احتمالی: {direction}\n\nموارد مشابه:"
+        
+        for m in data.get("matches", []):
+            message += f"\n- {m['symbol']} (شباهت: {m['score']:.2f})"
+        
         await update.message.reply_text(message)
 
-    except requests.exceptions.RequestException as e:
-        logger.error(f"API request failed: {e}")
-        await update.message.reply_text("خطا در اتصال به سرور.")
-
     except Exception as e:
-        logger.error(f"Unexpected error: {e}")
-        await update.message.reply_text("خطا در پردازش درخواست.")
-
+        logger.error(f"Error: {e}")
+        await update.message.reply_text("خطا در اتصال به سرور تحلیل.")
 
 # -------------------------
-# Run bot
+# Run bot (Optimized for Threading)
 # -------------------------
 def run_bot():
-
     token = os.environ.get("TELEGRAM_BOT_TOKEN")
-
     if not token:
-        logger.error("TELEGRAM_BOT_TOKEN not set")
+        logger.error("TELEGRAM_BOT_TOKEN not set!")
         return
 
-    app = ApplicationBuilder().token(token).build()
+    # ایجاد یک event loop جدید برای جلوگیری از خطای Runtime
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    application = ApplicationBuilder().token(token).build()
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-    logger.info("Telegram bot started")
+    logger.info("Telegram bot is running...")
+    application.run_polling()
 
-    app.run_polling()
-
-
-# -------------------------
-# Local test
-# -------------------------
 if __name__ == "__main__":
     run_bot()
