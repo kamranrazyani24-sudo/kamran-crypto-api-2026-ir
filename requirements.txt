@@ -3,5 +3,5 @@ uvicorn
 requests
 pandas
 numpy
-python-telegram-bot
+python-telegram-bot==20.7
 matplotlib
