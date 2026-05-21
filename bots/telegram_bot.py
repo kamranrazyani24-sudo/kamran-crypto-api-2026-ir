@@ -1,29 +1,20 @@
-import os
-import asyncio
 from telegram import Update
-from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
 
-TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
+# این تابع را FastAPI صدا می‌زند
+async def process_update(update_dict, token):
+    application = ApplicationBuilder().token(token).build()
+    # اینجا هندلرها را اضافه کن
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
+    
+    update = Update.de_json(update_dict, application.bot)
+    await application.initialize()
+    await application.process_update(update)
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("سلام! نام ارز دیجیتال را بفرست (مثلاً BTC)")
+async def start(update, context):
+    await update.message.reply_text("ربات آماده است! یک نماد بفرست.")
 
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_message(update, context):
     symbol = update.message.text.upper()
-    await update.message.reply_text(f"در حال تحلیل {symbol}...")
-    # اینجا درخواست به API اصلی ات را اضافه می‌کنی
-
-async def run_bot():
-    if not TOKEN:
-        print("خطا: توکن تلگرام تنظیم نشده است!")
-        return
-    
-    app = ApplicationBuilder().token(TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
-    
-    print(">>> ربات تلگرام با موفقیت اجرا شد")
-    await app.run_polling()
-
-if __name__ == "__main__":
-    asyncio.run(run_bot())
+    await update.message.reply_text(f"تحلیل {symbol} انجام شد...")
