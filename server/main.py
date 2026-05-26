@@ -21,11 +21,31 @@ async def health_check():
 # --- منطق تحلیل بازار (V4) ---
 async def get_crypto_data(symbol):
     try:
-        url = f"https://api.binance.com/api/v3/klines?symbol={symbol}USDT&interval=1h&limit=100"
-        res = requests.get(url).json()
-        df = pd.DataFrame(res, columns=['time', 'open', 'high', 'low', 'close', 'vol', 'close_time', 'q_vol', 'trades', 'tb_base', 'tb_quote', 'ignore'])
-        return df['close'].astype(float).tolist()
-    except:
+        s = symbol.strip().upper()
+
+        # اگر کاربر جفت‌ارز کامل داد (مثلاً ADAUSDT) همان را استفاده کن
+        # اگر فقط نام کوین داد (مثلاً ADA) تبدیلش کن به ADAUSDT
+        if not s.endswith("USDT"):
+            s = f"{s}USDT"
+
+        url = f"https://api.binance.com/api/v3/klines?symbol={s}&interval=1h&limit=100"
+
+        res = requests.get(url, timeout=15).json()
+
+        # اگر بایننس خطا بده، معمولاً dict برمی‌گردونه نه list
+        if isinstance(res, dict) and "code" in res:
+            # برای دیباگ در لاگ‌های Render خیلی کمک می‌کنه:
+            print("Binance error:", res)
+            return None
+
+        df = pd.DataFrame(
+            res,
+            columns=["time","open","high","low","close","vol","close_time","q_vol","trades","taker_base","taker_quote","ignore"]
+        )
+        return df["close"].astype(float).tolist()
+
+    except Exception as e:
+        print("get_crypto_data exception:", repr(e))
         return None
 
 def analyze_pattern(prices):
