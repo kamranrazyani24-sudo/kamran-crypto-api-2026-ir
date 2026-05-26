@@ -69,13 +69,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # --- اجرای همزمان وب‌سرور و ربات ---
 async def run_bot():
-    application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+    application = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
     
     await application.initialize()
     await application.start()
-    await application.updater.start_polling()
+    await application.updater.start_polling(drop_pending_updates=True)
 
 @app.on_event("startup")
 async def startup_event():
