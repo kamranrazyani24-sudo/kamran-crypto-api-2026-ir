@@ -9,7 +9,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, fil
 import uvicorn
 
 # --- تنظیمات اولیه ---
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "YOUR_TOKEN_HERE")
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "YOUR_TOKEN_HERE")
 PORT = int(os.getenv("PORT", 8000))
 
 app = FastAPI()
@@ -61,5 +61,5 @@ async def run_bot():
 async def startup_event():
     asyncio.create_task(run_bot())
 
-if name == "main":
+if name == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=PORT)
