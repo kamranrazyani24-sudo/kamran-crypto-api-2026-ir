@@ -1,8 +1,6 @@
 import os
 import asyncio
 import requests
-import pandas as pd
-import numpy as np
 from fastapi import FastAPI
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
@@ -14,18 +12,15 @@ PORT = int(os.environ.get("PORT", 8080))
 
 app = FastAPI()
 
-# --- تابع هوشمند دریافت داده از CoinEx (جایگزین بایننس) ---
+# --- تابع دریافت داده از CoinEx (جایگزین بایننس برای پایداری در ایران) ---
 def get_crypto_data(symbol):
     try:
-        # تبدیل نام ارز به فرمت کوین‌اکس (مثلاً BTCUSDT)
         clean_symbol = symbol.upper().replace("USDT", "") + "USDT"
         url = f"https://api.coinex.com/v1/market/kline?market={clean_symbol}&type=1hour&limit=100"
-        
         response = requests.get(url, timeout=10)
         if response.status_code == 200:
             data = response.json()
             if data.get("code") == 0:
-                # قیمت‌های بسته شدن (Close Prices)
                 prices = [float(item[3]) for item in data["data"]]
                 return prices
         return None
@@ -35,23 +30,20 @@ def get_crypto_data(symbol):
 
 # --- بخش تلگرام ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(f"سلام {update.effective_user.first_name} عزیز! نام ارز دیجیتال مورد نظرت را بفرست تا تحلیلش کنم (مثلاً BTC یا ADA)")
+    await update.message.reply_text(f"سلام {update.effective_user.first_name} عزیز! نام ارز (مثلا BTC) را بفرست تا تحلیلش کنم.")
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     symbol = update.message.text.upper()
-    await update.message.reply_text(f"🔍 در حال دریافت داده‌های {symbol} از CoinEx و تحلیل الگوها... لطفا صبر کنید.")
+    await update.message.reply_text(f"🔍 در حال تحلیل {symbol} از منبع CoinEx...")
     
     prices = get_crypto_data(symbol)
-    
     if prices:
         current_price = prices[-1]
-        # در اینجا می‌توانید توابع تحلیل الگو را صدا بزنید
-        # فعلاً یک پاسخ ساده برای تست سلامت ربات:
-        await update.message.reply_text(f"✅ داده‌های {symbol} دریافت شد.\n💰 قیمت فعلی: {current_price:.2f} USDT\n📈 وضعیت: در حال پردازش الگوهای تکنیکال...")
+        await update.message.reply_text(f"✅ داده دریافت شد.\n💰 قیمت فعلی {symbol}: {current_price:.2f} USDT")
     else:
-        await update.message.reply_text("❌ خطا: متأسفانه داده‌ای دریافت نشد. مطمئن شوید نام ارز را درست وارد کرده‌اید.")
+        await update.message.reply_text("❌ خطا در دریافت داده. نام ارز را چک کنید.")
 
-# --- تنظیمات FastAPI و اجرای ربات ---
+# --- اجرای FastAPI و ربات ---
 @app.get("/")
 async def health_check():
     return {"status": "Bot is running"}
@@ -61,7 +53,6 @@ async def run_bot():
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
     
-    # اجرای تلگرام در کنار FastAPI
     async with application:
         await application.initialize()
         await application.start()
@@ -69,8 +60,8 @@ async def run_bot():
         while True:
             await asyncio.sleep(1)
 
-if name == "main":
-    # اجرای همزمان وب‌سرور و ربات تلگرام
+# اصلاح حیاتی این خط:
+if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     loop.create_task(run_bot())
     uvicorn.run(app, host="0.0.0.0", port=PORT)
