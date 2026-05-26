@@ -62,10 +62,20 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     symbol = update.message.text.upper()
-    await update.message.reply_text(f"🔍 در حال تحلیل {symbol}...")
-    prices = await get_crypto_data(symbol)
-    result = analyze_pattern(prices)
-    await update.message.reply_text(result)
+    print(f"Received symbol: {symbol}") # این در لاگ‌های رندر چاپ می‌شود
+    await update.message.reply_text(f"در حال تحلیل {symbol} هستم، لطفا صبر کنید...")
+    
+    try:
+        prices = await get_crypto_data(symbol)
+        if prices is None or len(prices) == 0:
+            await update.message.reply_text("خطا: داده‌ای از بایننس دریافت نشد.")
+            return
+            
+        result = analyze_pattern(prices)
+        await update.message.reply_text(result)
+    except Exception as e:
+        print(f"Error: {e}")
+        await update.message.reply_text("متاسفانه در تحلیل خطایی رخ داد.")
 
 # --- اجرای همزمان وب‌سرور و ربات ---
 async def run_bot():
