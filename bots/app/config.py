@@ -1,0 +1,8 @@
+import os
+
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+
+SIMILARITY_THRESHOLD = 0.90
+MIN_MATCH = 10
+MAX_MATCH = 30
+TIMEFRAME = "1h"
