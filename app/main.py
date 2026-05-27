@@ -1,35 +1,37 @@
 import os
-from fastapi import FastAPI, Request
-from telegram import Update
+import asyncio
+from fastapi import FastAPI
+import uvicorn
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
 from app.bot import start, analyze
 from app.config import BOT_TOKEN
 
 app = FastAPI()
 
-WEBHOOK_URL = os.environ.get("WEBHOOK_URL")
-
+# تعریف اپلیکیشن تلگرام در سطح ماژول
 telegram_app = ApplicationBuilder().token(BOT_TOKEN).build()
-telegram_app.add_handler(CommandHandler("start", start))
-telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, analyze))
 
 @app.on_event("startup")
 async def startup():
+    # اضافه کردن هندلرها
+    telegram_app.add_handler(CommandHandler("start", start))
+    telegram_app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), analyze))
+    
+    # مقداردهی اولیه
     await telegram_app.initialize()
-    await telegram_app.set_webhook(url=f"{WEBHOOK_URL}/webhook")
     await telegram_app.start()
-
-@app.post("/webhook")
-async def webhook(request: Request):
-    data = await request.json()
-    update = Update.de_json(data, telegram_app.bot)
-    await telegram_app.process_update(update)
-    return {"ok": True}
+    
+    # اجرای پولینگ به صورت غیرمسدودکننده (Background Task)
+    # این کار باعث می‌شود سرور فست‌اپی بلافاصله پورت را باز کند و رندر خطا ندهد
+    asyncio.create_task(telegram_app.updater.start_polling())
+    print("✅ Telegram Bot (Polling) started in background.")
 
 @app.get("/")
 async def root():
-    return {"status": "running", "TF": "1h"}
+    return {"status": "running", "user": "Kamran", "mode": "Polling"}
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("app.main:app", host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+    # دریافت پورت از رندر
+    port = int(os.environ.get("PORT", 10000))
+    # اجرای سرور وب
+    uvicorn.run("app.main:app", host="0.0.0.0", port=port)
