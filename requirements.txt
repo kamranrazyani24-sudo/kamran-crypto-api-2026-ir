@@ -1,8 +1,9 @@
-python-telegram-bot==20.3
 fastapi
 uvicorn
-requests
-numpy
+python-telegram-bot
+pandas
+pandas_ta
+ccxt
 matplotlib
-httpx==0.27.0
-httpcore==1.0.5
+seaborn
+python-dotenv
