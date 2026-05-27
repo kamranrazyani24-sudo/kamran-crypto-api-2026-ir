@@ -1,39 +1,24 @@
-import os
 import asyncio
-import threading
-from fastapi import FastAPI
+import os
 import uvicorn
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
-from app.bot import start, analyze
-from app.config import BOT_TOKEN
+from fastapi import FastAPI
+from app.bot import main as run_bot
 
 app = FastAPI()
 
 @app.get("/")
-def health():
-    return {"status": "up"}
+async def root():
+    return {"status": "Bot is running..."}
 
-def run_web():
-    # این تابع پورت را سریعاً برای رندر باز می‌کند
-    port = int(os.environ.get("PORT", 10000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
-
-async def run_bot():
-    # صبر کوچک برای اطمینان از بالا آمدن وب‌سرور
-    await asyncio.sleep(2)
-    print("🤖 Starting Bot...")
-    application = ApplicationBuilder().token(BOT_TOKEN).build()
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), analyze))
+async def start_services():
+    # اجرای ربات تلگرام در پس‌زمینه
+    asyncio.create_task(run_bot())
     
-    async with application:
-        await application.initialize()
-        await application.start()
-        await application.updater.start_polling()
-        await asyncio.Event().wait()
+    # تنظیم پورت برای Render
+    port = int(os.environ.get("PORT", 8000))
+    config = uvicorn.Config(app, host="0.0.0.0", port=port)
+    server = uvicorn.Server(config)
+    await server.serve()
 
 if __name__ == "__main__":
-    # اجرای وب‌سرور در ترد جداگانه
-    threading.Thread(target=run_web, daemon=True).start()
-    # اجرای ربات در ترد اصلی
-    asyncio.run(run_bot())
+    asyncio.run(start_services())
