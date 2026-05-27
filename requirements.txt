@@ -1,6 +1,6 @@
-python-telegram-bot==20.x
+python-telegram-bot==20.3
 fastapi
 uvicorn
 requests
-pandas
 numpy
+matplotlib
