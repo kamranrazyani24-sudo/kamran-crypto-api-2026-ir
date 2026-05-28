@@ -1,28 +1,13 @@
-import requests
+from typing import List, Dict
 
-BINANCE_KLINES_URL = "https://api.binance.com/api/v3/klines"
 
-def get_klines(symbol: str, interval: str, limit: int = 200):
+def fetch_klines(symbol: str, timeframe: str, limit: int = 200) -> List[Dict]:
     """
-    Fetch OHLCV candles from Binance.
-    Returns list format:
+    خروجی استاندارد (نمونه):
     [
-      [open_time, open, high, low, close, volume, close_time, ...],
+      {"open":..., "high":..., "low":..., "close":..., "volume":...},
       ...
     ]
+    فعلاً اسکلت است تا برنامه بدون خطای import بالا بیاید.
     """
-    params = {
-        "symbol": symbol.upper(),
-        "interval": interval,
-        "limit": limit
-    }
-
-    r = requests.get(BINANCE_KLINES_URL, params=params, timeout=15)
-    r.raise_for_status()
-    data = r.json()
-
-    # Basic validation
-    if not isinstance(data, list):
-        raise ValueError(f"Invalid kline response for {symbol} {interval}")
-
-    return data
+    return []
