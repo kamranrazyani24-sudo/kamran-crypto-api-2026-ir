@@ -1,9 +1,5 @@
-fastapi
-uvicorn
-python-telegram-bot
-pandas
-ccxt
-matplotlib
-seaborn
-python-dotenv
-# حذف pandas_ta برای دور زدن ارور numba
+fastapi==0.115.0
+uvicorn==0.30.6
+requests==2.32.3
+pandas==2.2.2
+numpy==2.0.1
