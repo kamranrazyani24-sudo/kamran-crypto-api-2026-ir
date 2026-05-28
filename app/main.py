@@ -1,21 +1,21 @@
-import os
-from fastapi import FastAPI
-from bot import analyze_symbol # این خط در لاگ تو خطا می‌داد
+from fastapi import FastAPI, Query
+from app.bot import start, analyze
 
-app = FastAPI()
+app = FastAPI(title="Crypto Pattern Bot", version="1.0.0")
+
 
 @app.get("/")
-def read_root():
-    return {"Status": "Bot is running..."}
+def root():
+    return {"status": "ok", "service": "crypto-pattern-bot"}
 
-@app.get("/predict/{symbol}")
-async def predict(symbol: str):
-    # فراخوانی تابع تحلیل از bot.py
-    results = await analyze_symbol(symbol.upper())
-    return results
 
-if __name__ == "__main__":
-    import uvicorn
-    # رندر پورت را از Environment Variable می‌خواند
-    port = int(os.environ.get("PORT", 10000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+@app.get("/start")
+def start_endpoint():
+    return start()
+
+
+@app.get("/analyze")
+def analyze_endpoint(
+    symbol: str = Query(default="ADA", description="Symbol like ADA, BTC, ETH"),
+):
+    return analyze(symbol)
