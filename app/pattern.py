@@ -1,38 +1,36 @@
-def _candle_features(candle):
+from typing import List, Dict, Any
+
+
+def extract_pattern(candles: List[Dict[str, float]]) -> Dict[str, Any]:
     """
-    Convert one candle to normalized features.
-    candle format:
-    [open_time, open, high, low, close, volume, ...]
-    """
-    o = float(candle[1])
-    h = float(candle[2])
-    l = float(candle[3])
-    c = float(candle[4])
-
-    if o == 0:
-        o = 1e-12
-
-    body = (c - o) / o
-    upper_shadow = (h - max(o, c)) / o
-    lower_shadow = (min(o, c) - l) / o
-    range_pct = (h - l) / o
-
-    return [body, upper_shadow, lower_shadow, range_pct]
-
-def extract_pattern(candles):
-    """
-    Extract pattern only from candles 7 to 9.
-    candles must contain at least 9 candles.
-    Python indices:
-    candle 7 -> index 6
-    candle 8 -> index 7
-    candle 9 -> index 8
+    طبق درخواست قبلی: فقط کندل‌های 7 تا 9 (ایندکس 6..8 اگر لیست 0-based باشد)
+    اینجا اسکلت است تا importها درست باشند و بعداً منطق دقیق را جایگزین کنیم.
     """
     if len(candles) < 9:
-        raise ValueError("At least 9 candles required for pattern extraction")
+        return {"ok": False, "reason": "not_enough_candles", "need": 9, "have": len(candles)}
 
-    segment = candles[6:9]
-    pattern = []
-    for candle in segment:
-        pattern.extend(_candle_features(candle))
-    return pattern
+    window = candles[6:9]  # candles 7..9
+    return {"ok": True, "window": window}
+
+
+def candle_features(candle: Dict[str, float]) -> Dict[str, float]:
+    o = float(candle.get("open", 0))
+    h = float(candle.get("high", 0))
+    l = float(candle.get("low", 0))
+    c = float(candle.get("close", 0))
+
+    body = abs(c - o)
+    upper_shadow = max(0.0, h - max(o, c))
+    lower_shadow = max(0.0, min(o, c) - l)
+    shadow = upper_shadow + lower_shadow
+
+    return {
+        "open": o,
+        "high": h,
+        "low": l,
+        "close": c,
+        "body": body,
+        "upper_shadow": upper_shadow,
+        "lower_shadow": lower_shadow,
+        "shadow": shadow,
+    }
