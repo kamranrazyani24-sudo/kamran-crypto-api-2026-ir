@@ -1,32 +1,21 @@
-from fastapi import FastAPI, HTTPException
+import os
+from fastapi import FastAPI
+from bot import analyze_symbol # این خط در لاگ تو خطا می‌داد
 
-from bot import analyze_symbol, format_report
-
-app = FastAPI(title="Crypto Pattern Bot")
-
+app = FastAPI()
 
 @app.get("/")
-def root():
-    return {"status": "ok", "message": "Crypto Pattern Bot is running"}
-
+def read_root():
+    return {"Status": "Bot is running..."}
 
 @app.get("/predict/{symbol}")
-def predict(symbol: str):
-    symbol = symbol.upper().strip()
-    if not symbol.endswith("USDT"):
-        symbol = f"{symbol}USDT"
+async def predict(symbol: str):
+    # فراخوانی تابع تحلیل از bot.py
+    results = await analyze_symbol(symbol.upper())
+    return results
 
-    try:
-        result = analyze_symbol(symbol)
-        if not result:
-            raise HTTPException(status_code=404, detail="No similar pattern found")
-
-        return {
-            "symbol": symbol,
-            "analysis": result,
-            "report": format_report(symbol, result)
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+if __name__ == "__main__":
+    import uvicorn
+    # رندر پورت را از Environment Variable می‌خواند
+    port = int(os.environ.get("PORT", 10000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
